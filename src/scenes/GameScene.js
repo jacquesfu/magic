@@ -59,6 +59,13 @@ class GameScene extends Phaser.Scene {
     this.input.keyboard.on("keydown-SPACE", () => this.flapWings(), this);
 
     this.passedObstacles = new Set();
+
+    // Add wings as a separate sprite
+    this.wings = this.add.sprite(
+      this.player.x + 5, // Slightly offset from bee body
+      this.player.y - 5,
+      "wings"
+    );
   }
 
   createBackground() {
@@ -128,7 +135,7 @@ class GameScene extends Phaser.Scene {
   }
 
   spawnObstacles() {
-    const gapHeight = 150;
+    const gapHeight = 165;
     const gapPosition = Phaser.Math.Between(
       gapHeight,
       config.height - gapHeight
@@ -178,7 +185,7 @@ class GameScene extends Phaser.Scene {
 
   updateSpeed() {
     // Calculate speed increase based on score
-    const speedIncrease = Math.floor(this.score / 10) * 5; // 5% increase every 10 points
+    const speedIncrease = Math.floor(this.score / 5) * 5; // 5% increase every 5 points
     this.currentSpeed = this.baseSpeed * (1 + speedIncrease / 100);
 
     // Update all existing obstacles to new speed
@@ -236,10 +243,57 @@ class GameScene extends Phaser.Scene {
     if (this.player.y > config.height || this.player.y < 0) {
       this.gameOver();
     }
+
+    // Update wings position to follow the bee
+    this.wings.x = this.player.x + 5;
+    this.wings.y = this.player.y - 5;
+
+    // Animate wings when flapping
+    if (this.player.body.velocity.y < 0) {
+      this.wings.angle = this.player.angle - 15; // Spread wings up when rising
+    } else {
+      this.wings.angle = this.player.angle + 15; // Tuck wings down when falling
+    }
   }
 
   gameOver() {
     console.log("GameScene: Game Over - Final Score:", this.score);
     this.scene.start("GameOverScene", { score: this.score });
+  }
+
+  createWingsTexture() {
+    const graphics = this.add.graphics();
+
+    // Wing color and style
+    graphics.lineStyle(2, 0xffffff);
+    graphics.fillStyle(0xffffff, 0.6);
+
+    // Create path for top wing
+    const topWing = new Phaser.Curves.Path(0, 0);
+    topWing.moveTo(0, 0);
+    topWing.lineTo(15, -10);
+    topWing.lineTo(20, 0);
+    topWing.lineTo(15, 10);
+    topWing.lineTo(0, 0);
+
+    // Draw top wing
+    graphics.strokePath(topWing);
+    graphics.fillPath(topWing);
+
+    // Create path for bottom wing
+    const bottomWing = new Phaser.Curves.Path(0, 5);
+    bottomWing.moveTo(0, 5);
+    bottomWing.lineTo(12, -3);
+    bottomWing.lineTo(15, 5);
+    bottomWing.lineTo(12, 13);
+    bottomWing.lineTo(0, 5);
+
+    // Draw bottom wing
+    graphics.strokePath(bottomWing);
+    graphics.fillPath(bottomWing);
+
+    // Generate the wings texture
+    graphics.generateTexture("wings", 25, 25);
+    graphics.destroy();
   }
 }
